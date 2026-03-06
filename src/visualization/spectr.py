@@ -31,6 +31,8 @@ def plot_spectr(epochs_1, epochs_2, Fs, channels=[0, 1, 2, 3, 4, -5, -4, -3, -2,
     for axes in ax:
         axes.grid(alpha=.5)
         axes.set_xlabel("Frequency [Hz]")
+        
+        axes.set_xlim(0, 30)
 
     fig.suptitle("Power Spectral Density", fontsize=16, y=1.05)
 

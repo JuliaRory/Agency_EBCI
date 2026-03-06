@@ -92,7 +92,6 @@ def train_clssifier(eeg, Fs, idxs_1, idxs_2, edges_ms=250, band=[8, 13], sel_com
             "n_components": len(sel_comp)
         }
         
-        
         # Сохраняем в JSON файл
         with open(output_filename, 'w') as f:
             json.dump(classifier_data, f, indent=4)
@@ -113,8 +112,8 @@ if __name__ == "__main__":
     
     # ==== Resonance Files ====
     else:
-        data_folder = r"R:\projects_Agency_EBCI\Agency_EBCI\data\tests"
-        record = "photo.hdf"
+        data_folder = r"R:\projects_FEEDBACK_QUASI\data\02 ES calibration session v2.0"
+        record = "02-OM.hdf"
         # eeg, idxs_1, idxs_2, xy, Fs = process_file_resonance(os.path.join(data_folder, record))
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(data_folder, record))
 

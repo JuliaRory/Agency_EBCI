@@ -41,7 +41,7 @@ def bandpass_filter(signal, fs, low=0.5, highpass=True, high=40.0, lowpass=True,
         ftype = 'highpass'
 
     sos = butter(order, freqs, btype=ftype, output='sos', fs=fs)
-    return sosfiltfilt(ascontiguousarray(sos), signal, axis=0)
+    return sosfiltfilt(ascontiguousarray(sos), signal, axis=0), sos
 
 def rereference_eeg(eeg_data, ref_idx):
     """

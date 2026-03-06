@@ -3,7 +3,7 @@ from numpy import concatenate, float64, column_stack
 
 # ==== unique for BCI Comp IV ====
 
-def process_file(filename):
+def process_file_bci_comp(filename):
     """
     filename: str 
         absolute path

@@ -23,7 +23,7 @@ def slice_epochs(data, intervals):
     epochs = []
     for start, end in intervals:
         epochs.append(data[end-min_epoch_dur:end])
-    # print(array(epochs))
+        
     return array(epochs)
 
 def receive_epochs(events, event_code):
