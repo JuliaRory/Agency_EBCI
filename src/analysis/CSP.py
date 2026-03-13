@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.linalg import eigh
 
+from src.utils.olivehawkins_robustcov import olivehawkins_robustcov
 from sklearn.covariance import MinCovDet
 import scipy.linalg as la
 
@@ -11,7 +12,7 @@ import scipy.linalg as la
 
 import scipy.linalg as la
 
-def compute_csp(epochs1, epochs2):
+def compute_csp(epochs1, epochs2, robust=False):
     """
     epochs1, epochs2 : [n_epochs, samples, channels]
 
@@ -31,8 +32,13 @@ def compute_csp(epochs1, epochs2):
         covs = [epoch_cov(ep) for ep in epochs]
         return np.mean(covs, axis=0)
 
-    C1 = class_cov(epochs1)
-    C2 = class_cov(epochs2)
+    def class_robust_cov(epochs):
+        covs = [olivehawkins_robustcov(ep)[0] for ep in epochs]
+        return np.mean(covs, axis=0)
+
+    calculate_cov = class_cov if not robust else class_robust_cov
+    C1 = calculate_cov(epochs1)
+    C2 = calculate_cov(epochs2)
 
     C = C1 + C2
 

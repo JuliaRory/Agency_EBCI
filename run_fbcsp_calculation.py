@@ -9,8 +9,8 @@ MODES = ["left-right",  'right-rest', 'left-rest']
 
 if __name__ == "__main__":
     for record in os.listdir(DATA_FOLDER):
-        if record in ["01_222sec_112.hdf", "02_224sec_111.hdf"]:
-            continue
+        # if record in ["01_222sec_112.hdf", "02_224sec_111.hdf"]:
+        #     continue
         print(f"===== {record} =====")
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(DATA_FOLDER, record))
 
@@ -28,4 +28,4 @@ if __name__ == "__main__":
 
             # ==== universal part ==== 
             calculate_csp_in_bands(eeg, Fs, idxs1, idxs2, xy, edges_ms=250, bands=[[8, 10], [10, 12], [12, 14], [8, 12], [10, 14]], spectr=True,
-                                folder_output=os.path.join(r"./results/csp_components/03_03 Artem", record[:-4], mode))
+                                folder_output=os.path.join(r"./results/csp_components/03_03 Artem/robust_cov", record[:-4], mode))

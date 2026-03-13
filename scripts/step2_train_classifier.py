@@ -31,18 +31,19 @@ def get_features(feature, window_size=100, step=10):
 def train_clssifier(eeg, Fs, idxs_1, idxs_2, edges_ms=250, band=[8, 13], sel_comp=[0, 1], freq=[10, 11, 12], anatoly=False, features="csp", output_filename=None):
     # ==== universal ====
 
+    n = edges_ms // (1000 // Fs)
+    start_shift = 500   # потому что индексы бралис с запасом 500 сэмплов на бейзлайн
+
     eeg_f, sos = bandpass_filter(eeg, fs=Fs, low=band[0], high=band[1])
-    epochs_1, epochs_2 = slice_epochs(eeg_f, idxs_1), slice_epochs(eeg_f, idxs_2)
+    epochs_1, epochs_2 = slice_epochs(eeg_f, idxs_1)[:, n+start_shift:-n, :], slice_epochs(eeg_f, idxs_2)[:, n+start_shift:-n, :]
     
     if anatoly:
-        n = edges_ms // (1000 // Fs)
-        
-        cov1 = calculate_robust_cov(epochs_1[:, n:-n, :]).covariance_
-        cov2 = calculate_robust_cov(epochs_2[:, n:-n, :]).covariance_
+        cov1 = calculate_robust_cov(epochs_1).covariance_
+        cov2 = calculate_robust_cov(epochs_2).covariance_
 
         projInverse, projForward, evals = calculate_CSP(cov1, cov2)
     else:
-        projInverse, projForward, evals = compute_csp(epochs_1, epochs_2)
+        projInverse, projForward, evals = compute_csp(epochs_1[:, n+start_shift:-n, :], epochs_2[:, n+start_shift:-n, :])
 
     epochs_1_csp = apply_csp(epochs_1, projInverse, sel_components=sel_comp)
     epochs_2_csp = apply_csp(epochs_2, projInverse, sel_components=sel_comp)
@@ -112,12 +113,14 @@ if __name__ == "__main__":
     
     # ==== Resonance Files ====
     else:
-        data_folder = r"R:\projects_FEEDBACK_QUASI\data\02 ES calibration session v2.0"
-        record = "02-OM.hdf"
+        # data_folder = r"R:\projects_FEEDBACK_QUASI\data\02 ES calibration session v2.0"
+        # record = "02-OM.hdf"
+        data_folder = r"R:\projects_FEEDBACK_QUASI\data\tests\01 Evgeny 13.03"
+        record = "01 calibration session.hdf"
         # eeg, idxs_1, idxs_2, xy, Fs = process_file_resonance(os.path.join(data_folder, record))
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(data_folder, record))
 
-    mode = "left-right" # 'right-rest' or 'left-rest'
+    mode = "right-rest" # 'right-rest' or 'left-rest'
     if mode == "left-right":
         idxs1 = idxs_left 
         idxs2 = idxs_right 
@@ -132,7 +135,7 @@ if __name__ == "__main__":
     ion()
     
     choose = False       #<-------------------------- ввести вручную
-    band = [10, 12]      #<-------------------------- ввести вручную
+    band = [10, 14]      #<-------------------------- ввести вручную
 
     # СДЕЛАЙ ЭТО ЧЕРЕЗ str = input("text") ПОПОЗЖЕ !!!!!!!!!!!!!!!!!!!!!!!
     if choose:

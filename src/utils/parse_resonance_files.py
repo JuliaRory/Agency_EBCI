@@ -60,9 +60,14 @@ def parse_events(trigger, window_size=200, start_shift=100, end_shift=100):
 
     events = np.concatenate([start_idx-start_shift, end_idx+end_shift], axis=1)
 
-    idxs1 = events[labels == 0]
+    # idxs1 = events[labels == 0]
     idxs2 = events[labels == 1]
     idxs3 = events[labels == 2]
+    
+    # for quasi feedback
+    start_idx = (idxs2[:, 1] + 4000).reshape((-1, 1))
+    end_idx = (start_idx + 8000).reshape((-1, 1))
+    idxs1 = np.concatenate([start_idx, end_idx], axis=1)
     
     return idxs1, idxs2, idxs3
 

@@ -20,44 +20,47 @@ def calculate_csp_in_bands(eeg, Fs, idxs_1, idxs_2, xy, edges_ms=250, bands=[[8,
     os.makedirs(folder_output, exist_ok=True)
 
     for band in bands:
+        try:
+            eeg_f, sos = bandpass_filter(eeg, fs=Fs, low=band[0], high=band[1])
+            epochs_1, epochs_2 = slice_epochs(eeg_f, idxs_1), slice_epochs(eeg_f, idxs_2)
+            
+            n = edges_ms // (1000 // Fs)
+            start_shift = 500
 
-        eeg_f, sos = bandpass_filter(eeg, fs=Fs, low=band[0], high=band[1])
-        epochs_1, epochs_2 = slice_epochs(eeg_f, idxs_1), slice_epochs(eeg_f, idxs_2)
-        
-        n = edges_ms // (1000 // Fs)
-        start_shift = 500
+            if anatoly:
+                cov1 = calculate_robust_cov(epochs_1[:, n+start_shift:-n, :]).covariance_
+                cov2 = calculate_robust_cov(epochs_2[:, n+start_shift:-n, :]).covariance_
 
-        if anatoly:
-            cov1 = calculate_robust_cov(epochs_1[:, n+start_shift:-n, :]).covariance_
-            cov2 = calculate_robust_cov(epochs_2[:, n+start_shift:-n, :]).covariance_
+                projInverse, projForward, evals = calculate_CSP(cov1, cov2)
+            else:
+                projInverse, projForward, evals = compute_csp(epochs_1[:, n+start_shift:-n, :], epochs_2[:, n+start_shift:-n, :], robust=True)
+            
+            fig = plot_10_csp_components(abs(evals), projForward, xy)
+            fig.suptitle(f"CSP: Freq Band {band}", fontsize=16)
 
-            projInverse, projForward, evals = calculate_CSP(cov1, cov2)
-        else:
-            projInverse, projForward, evals = compute_csp(epochs_1, epochs_2)
-        
-        fig = plot_10_csp_components(abs(evals), projForward, xy)
-        fig.suptitle(f"CSP: Freq Band {band}", fontsize=16)
-
-        output_filename = os.path.join(folder_output, f"COMPONENTS_{band}.png")
-        output_filename = make_unique_filename(output_filename)
-        fig.savefig(output_filename, dpi=300, bbox_inches="tight")
-        if show_plot:
-            fig.show()
-            pause(0.1)
-        
-        if spectr:
-            eeg_csp = eeg_f @ projInverse
-            epochs_1, epochs_2 = slice_epochs(eeg_csp, idxs_1), slice_epochs(eeg_csp, idxs_2)
-            fig_spectr = plot_spectrograms(epochs_1, epochs_2, Fs, title=f"Spectrogrammm: Freq Band {band}", baseline=(0, 300))
-
-            output_filename_spectr = os.path.join(folder_output, f"SPECTROGRAMM_{band}.png")
-            output_filename_spectr = make_unique_filename(output_filename_spectr)
-            fig_spectr.savefig(output_filename_spectr, dpi=300, bbox_inches="tight")
+            output_filename = os.path.join(folder_output, f"COMPONENTS_{band}.png")
+            output_filename = make_unique_filename(output_filename)
+            fig.savefig(output_filename, dpi=300, bbox_inches="tight")
             if show_plot:
-                fig_spectr.show()
+                fig.show()
                 pause(0.1)
-        
-        print(f"Band {band} is processed.")
+            
+            if spectr:
+                eeg_csp = eeg_f @ projInverse
+                epochs_1, epochs_2 = slice_epochs(eeg_csp, idxs_1), slice_epochs(eeg_csp, idxs_2)
+                fig_spectr = plot_spectrograms(epochs_1, epochs_2, Fs, title=f"Spectrogrammm: Freq Band {band}", baseline=(0, 300))
+
+                output_filename_spectr = os.path.join(folder_output, f"SPECTROGRAMM_{band}.png")
+                output_filename_spectr = make_unique_filename(output_filename_spectr)
+                fig_spectr.savefig(output_filename_spectr, dpi=300, bbox_inches="tight")
+                if show_plot:
+                    fig_spectr.show()
+                    pause(0.1)
+            
+            print(f"Band {band} is processed.")
+        except Exception as e:
+            # Print the specific error message
+            print(f"An error occurred: {e}") 
 
 if __name__ == "__main__":
     data = "fb_q"
@@ -71,8 +74,8 @@ if __name__ == "__main__":
     
     # ==== Resonance Files ====
     else:
-        data_folder = r".\data\test\03_06 Artem"
-        record = "01_222sec_112.hdf"
+        data_folder = r"R:\projects_FEEDBACK_QUASI\data\tests\01 Evgeny 13.03"
+        record = "01 calibration session.hdf"
         # eeg, idxs_1, idxs_2, xy, Fs = process_file_resonance(os.path.join(data_folder, record))
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(data_folder, record))       # 500 лишних сэмплов в начале
 
@@ -89,4 +92,4 @@ if __name__ == "__main__":
 
     # ==== universal part ==== 
     calculate_csp_in_bands(eeg, Fs, idxs1, idxs2, xy, edges_ms=250, bands=[[8, 10], [10, 12], [12, 14], [8, 12], [10, 14]], spectr=True,
-                           folder_output=os.path.join(r"./results/csp_components/03_03 Artem", record[:-4], mode))
+                           folder_output=os.path.join(r"./results/csp_components/03_03 Artem/robust_cov", record[:-4], mode))
