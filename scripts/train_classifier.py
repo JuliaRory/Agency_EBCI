@@ -17,7 +17,7 @@ from src.analysis.features import csp_features, fft_feature
 
 from src.visualization.plot_csp_components import plot_10_csp_components
 
-from scripts.calculate_fbcsp import calculate_csp_in_bands
+from scripts.step1_calculate_fbcsp import calculate_csp_in_bands
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.model_selection import cross_validate

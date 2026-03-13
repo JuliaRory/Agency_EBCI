@@ -64,7 +64,7 @@ def plot_10_csp_components(eigenvals, projForward, xy):
         plot_eigenvalues(eigenvals, plt.subplot(gs[:, 0]))
 
         idxs = [0, 1, 2, 3, 4, -5, -4, -3, -2, -1]
-        titles = [1, 2, 3, 4, 5] + [len(projForward)+idx for idx in idxs[::-1]]
+        titles = [0, 1, 2, 3, 4] + [len(projForward)+idx for idx in idxs[::-1]]
         vmin, vmax = np.min(projForward[:, idxs]), np.max(projForward[:, idxs])
         vmin, vmax = -max(abs(vmin), abs(vmax)), max(abs(vmin), abs(vmax))
         for i, ch in enumerate(idxs):

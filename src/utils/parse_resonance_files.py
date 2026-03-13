@@ -33,7 +33,7 @@ def process_file_resonance(filename):
     # idx_motor = receive_epochs(events, event_code=1)
     # idx_rest = receive_epochs(events, event_code=2)
 
-    idxs_rest, idxs_right, idxs_left = parse_events(trigger)
+    idxs_rest, idxs_right, idxs_left = parse_events(trigger, window_size=200, start_shift=500, end_shift=0)
     
     xy = get_topo_positions(CED_FILE)
 
@@ -41,8 +41,33 @@ def process_file_resonance(filename):
 
     return raw_eeg, idxs_rest, idxs_right, idxs_left, xy, Fs
 
+def define_label(dtrigger, idx, buff=600, labels={1: 0, 2: 1, 3: 2}):
+        dtrig = dtrigger[idx-buff:idx-10] 
+        n_shifts = np.where(dtrig == 1)[0].shape[0]
+        for key in labels:
+            if n_shifts == key:
+                return labels[key]
+        return np.nan
 
-def parse_events(trigger, window_size=600):
+def parse_events(trigger, window_size=200, start_shift=100, end_shift=100):
+    strigger = np.convolve(trigger, np.ones(window_size, dtype=int), 'valid')   # sum of trigger in window  
+    
+    start_idx = np.where((strigger == window_size) & (np.diff(strigger, prepend=0) == 1))[0].reshape((-1, 1))
+    end_idx = np.where((strigger == 0) & (np.diff(strigger, prepend=0) == -1))[0].reshape((-1, 1))
+
+    dtrigger = np.diff(trigger)
+    labels = np.array([define_label(dtrigger, idx[0]) for idx in start_idx])
+
+    events = np.concatenate([start_idx-start_shift, end_idx+end_shift], axis=1)
+
+    idxs1 = events[labels == 0]
+    idxs2 = events[labels == 1]
+    idxs3 = events[labels == 2]
+    
+    return idxs1, idxs2, idxs3
+
+
+def parse_events_really_handle(trigger, window_size=600):
     trigger_sum = []
     idxs_start = []
     for start_idx in range(len(trigger)):

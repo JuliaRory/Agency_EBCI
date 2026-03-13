@@ -1,6 +1,7 @@
 
-from scipy.signal import ShortTimeFFT
-from numpy import abs, ones
+from scipy.signal import ShortTimeFFT, windows
+from numpy import abs, ones, float32, abs
+import numpy as np
 
 def get_fft(eeg, Fs=100, hop=10, window=100):
     SFT = ShortTimeFFT(win=ones(window), hop=hop, fs=Fs,  fft_mode='onesided')
@@ -8,7 +9,47 @@ def get_fft(eeg, Fs=100, hop=10, window=100):
     fft_t = SFT.t(len(eeg))
     return fft_res, fft_t
 
+def get_fft_fast(eeg, Fs=100, hop=10, window=100):
 
+    eeg = eeg.astype(float32)
+
+    SFT = ShortTimeFFT(
+        win=windows.hann(window, sym=False),
+        hop=hop,
+        fs=Fs,
+        fft_mode="onesided",
+        scale_to="psd"
+    )
+
+    fft_res = abs(SFT.stft(eeg, axis=0))
+    fft_res = fft_res**2
+
+    fft_t = SFT.t(len(eeg))
+    fft_f = SFT.f
+
+    return fft_res, fft_t, fft_f
+
+def compute_epoch_spectrogram(epochs, Fs):
+
+    specs = []
+
+    for ep in epochs:
+
+        fft, t, freqs = get_fft_fast(
+            ep,
+            Fs,
+            hop=int(0.1*Fs),
+            window=int(Fs)
+        )
+
+        specs.append(fft)
+
+    specs = np.stack(specs)
+
+    # усреднение по эпохам
+    spec = np.mean(specs, axis=0)
+
+    return spec, t, freqs
 
 def compute_psd_welch(data, fs, fmin=0.5, fmax=40.0, freq_res=0.5, nperseg=None):
     """
