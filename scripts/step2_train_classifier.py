@@ -115,12 +115,12 @@ if __name__ == "__main__":
     else:
         # data_folder = r"R:\projects_FEEDBACK_QUASI\data\02 ES calibration session v2.0"
         # record = "02-OM.hdf"
-        data_folder = r"R:\projects_FEEDBACK_QUASI\data\tests\01 Evgeny 13.03"
-        record = "01 calibration session.hdf"
+        data_folder = r"./data/test/03_16 Artem"
+        record = "03_calib.hdf"
         # eeg, idxs_1, idxs_2, xy, Fs = process_file_resonance(os.path.join(data_folder, record))
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(data_folder, record))
 
-    mode = "right-rest" # 'right-rest' or 'left-rest'
+    mode = "left-right" # 'right-rest' or 'left-rest'
     if mode == "left-right":
         idxs1 = idxs_left 
         idxs2 = idxs_right 
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     ion()
     
     choose = False       #<-------------------------- ввести вручную
-    band = [10, 14]      #<-------------------------- ввести вручную
+    band = [8, 12]      #<-------------------------- ввести вручную
 
     # СДЕЛАЙ ЭТО ЧЕРЕЗ str = input("text") ПОПОЗЖЕ !!!!!!!!!!!!!!!!!!!!!!!
     if choose:
@@ -149,9 +149,9 @@ if __name__ == "__main__":
 
         sys.exit(0)
         
-    sel_comp = [0, 63] #<-------------------------- ввести вручную
+    sel_comp = [0, 1] #<-------------------------- ввести вручную
     train_clssifier(eeg, Fs, idxs1, idxs2, edges_ms=250, band=band, 
-                    sel_comp=sel_comp, freq=[10, 11, 12, 21, 22, 23], anatoly=False,
+                    sel_comp=sel_comp, freq=[8, 9, 10, 11, 12, 13, 14, 15], anatoly=False,
                     features="csp", 
                     output_filename=r"models/test_classifier.json")
     show(block=True)

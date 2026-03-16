@@ -74,12 +74,12 @@ if __name__ == "__main__":
     
     # ==== Resonance Files ====
     else:
-        data_folder = r"R:\projects_FEEDBACK_QUASI\data\tests\01 Evgeny 13.03"
-        record = "01 calibration session.hdf"
+        data_folder = r"./data/test/03_16 Artem"
+        record = "03_calib.hdf"
         # eeg, idxs_1, idxs_2, xy, Fs = process_file_resonance(os.path.join(data_folder, record))
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(data_folder, record))       # 500 лишних сэмплов в начале
 
-    mode = "right-rest" # 'right-rest' or 'left-rest'ff
+    mode = "left-right" # 'right-rest' or 'left-rest'ff
     if mode == "left-right":
         idxs1 = idxs_left 
         idxs2 = idxs_right 
@@ -92,4 +92,4 @@ if __name__ == "__main__":
 
     # ==== universal part ==== 
     calculate_csp_in_bands(eeg, Fs, idxs1, idxs2, xy, edges_ms=250, bands=[[8, 10], [10, 12], [12, 14], [8, 12], [10, 14]], spectr=True,
-                           folder_output=os.path.join(r"./results/csp_components/03_03 Artem/robust_cov", record[:-4], mode))
+                           folder_output=os.path.join(r"./results/csp_components/03_16 Artem/robust_cov", record[:-4], mode))
