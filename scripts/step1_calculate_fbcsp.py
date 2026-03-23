@@ -23,7 +23,9 @@ def calculate_csp_in_bands(eeg, Fs, idxs_1, idxs_2, xy,
     # ==== universal ====
     os.makedirs(folder_output, exist_ok=True)
     eeg, _ = bandpass_filter(eeg, fs=Fs, low=1, high=40)
-    log_var_ratio = True
+    log_var_ratio = False
+    n = edges_ms // (1000 // Fs)
+    start_shift += 1000
     epochs_1, epochs_2 = slice_epochs(eeg, idxs_1)[:, n+start_shift:-n, :], slice_epochs(eeg, idxs_2)[:, n+start_shift:-n, :]
     if log_var_ratio:
         
@@ -33,9 +35,8 @@ def calculate_csp_in_bands(eeg, Fs, idxs_1, idxs_2, xy,
         output_filename_spectr = os.path.join(folder_output, f"log_var_C4.png")
         plot_log_ratio_psd(epochs_1, epochs_2, sfreq=Fs, ch_idx=idx_C4, fmin=1, fmax=30, filename=output_filename_spectr)
     for band in bands:
-        n = edges_ms // (1000 // Fs)
+        
         if True:
-            
             if not filter_epoch:
                 eeg, _ = bandpass_filter(eeg, fs=Fs, low=band[0], high=band[1])
             epochs_1, epochs_2 = slice_epochs(eeg, idxs_1)[:, n+start_shift:-n, :], slice_epochs(eeg, idxs_2)[:, n+start_shift:-n, :]
@@ -91,8 +92,8 @@ if __name__ == "__main__":
     
     # ==== Resonance Files ====
     else:
-        data_folder = r"./data/test/03_16 Artem"
-        record = "05_calib.hdf" # 4 sec 
+        data_folder = r"./data/test/03_23 Artem"
+        record = "06_game.hdf" # 4 sec 
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(data_folder, record), start_shift=start_shift)      
 
     mode = "left-right" # 'right-rest' or 'left-rest'ff
@@ -105,7 +106,7 @@ if __name__ == "__main__":
 
     # ==== universal part ==== 
     calculate_csp_in_bands(eeg, Fs, idxs1, idxs2, xy, 
-                           edges_ms=250, start_shift=start_shift, 
-                           bands=[[8, 12], [10, 14], [12, 16], [14, 20], [16, 22], [18, 24]], 
+                           edges_ms=250, start_shift=start_shift,
+                           bands=[[9, 13], [7,9], [11, 13], [10, 12], [8, 12], [10, 14], [12, 16], [14, 20], [16, 22], [18, 24]], 
                            spectr=False, anatoly=False, 
-                           folder_output=os.path.join(r"./results/csp_components/03_16 Artem/good_channels", record[:-4], mode))
+                           folder_output=os.path.join(r"./results/csp_components/03_23 Artem/good_channels", record[:-4], mode))

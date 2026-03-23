@@ -8,7 +8,7 @@ from matplotlib.pyplot import pause, ion, show, subplots
 from src.utils.parse_bci_iv_files import process_file_bci_comp
 from src.utils.parse_resonance_files import process_file_resonance
 
-from src.utils.events import slice_epochs, sliding_epochs
+from src.utils.events import slice_epochs #, sliding_epochs
 from src.utils.save_helpers import make_unique_filename
 
 from src.analysis.preprocessing import bandpass_filter
@@ -25,6 +25,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_validate
 import numpy as np
+from scipy.signal import butter
 
 def get_idxs(mode, idxs_rest, idxs_right, idxs_left):
     if mode == "left-right":
@@ -45,11 +46,9 @@ def get_epochs(eeg, Fs, idxs_1, idxs_2, edges_ms=250, start_shift=500, filtered=
     n = edges_ms // (1000 // Fs)
     eeg_f = copy.copy(eeg)
     if not filter_epoch and filtered:
-        print("filter1")
         eeg_f, sos = bandpass_filter(eeg, fs=Fs, low=band[0], high=band[1])
     epochs_1, epochs_2 = slice_epochs(eeg_f, idxs_1)[:, n+start_shift:-n, :], slice_epochs(eeg_f, idxs_2)[:, n+start_shift:-n, :]
     if filter_epoch and filtered:
-        print("filter2")
         epochs_1 = np.array([bandpass_filter(ep, fs=Fs, low=band[0], high=band[1])[0] for ep in epochs_1])
         epochs_2 = np.array([bandpass_filter(ep, fs=Fs, low=band[0], high=band[1])[0] for ep in epochs_2])
 
@@ -185,7 +184,7 @@ def predict_proba_online(x_window, w, b):
 
 if __name__ == "__main__":
     data = "fb_q"
-    start_shift = 500  # 500 лишних сэмплов в начале для визуализации бейзлайна
+    start_shift = 1500  # 500 лишних сэмплов в начале для визуализации бейзлайна
 
     # ==== BCI Comp IV ====
     if data == "bci_comp":
@@ -199,8 +198,8 @@ if __name__ == "__main__":
     else:
         # data_folder = r"R:\projects_FEEDBACK_QUASI\data\02 ES calibration session v2.0"
         # record = "02-OM.hdf"
-        data_folder = r"./data/test/03_16 Artem"
-        record = "05_calib.hdf"
+        data_folder = r"./data/test/03_23 Artem"
+        record = "06_game.hdf"
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(data_folder, record), start_shift=start_shift)    
 
     mode = "left-right" # 'right-rest' or 'left-rest'
@@ -209,6 +208,9 @@ if __name__ == "__main__":
     # ==== universal part ==== 
     ion()
     
+    choose = False      #<-------------------------- ввести вручную
+    band = [8, 12]      #<-------------------------- ввести вручную
+
     log_var_ratio = False
     if log_var_ratio:
         epochs_1, epochs_2 = get_epochs(eeg, Fs, idxs_1, idxs_2, edges_ms=250, start_shift=start_shift,  filtered=True, band=band)
@@ -219,8 +221,7 @@ if __name__ == "__main__":
         plot_log_ratio_psd(epochs_1, epochs_2, sfreq=Fs, ch_idx=idx_C4, fmin=1, fmax=30)
         pause(0.1)
 
-    choose = False      #<-------------------------- ввести вручную
-    band = [10, 14]      #<-------------------------- ввести вручную
+    
 
     # СДЕЛАЙ ЭТО ЧЕРЕЗ str = input("text") ПОПОЗЖЕ !!!!!!!!!!!!!!!!!!!!!!!
     if choose:
@@ -260,16 +261,16 @@ if __name__ == "__main__":
     epochs_1_csp = apply_csp(epochs_1, projInverse, sel_components=sel_comp)
     epochs_2_csp = apply_csp(epochs_2, projInverse, sel_components=sel_comp)
 
-    features = "riemannian"
-    classifier = LogisticRegression(max_iter=1000, 
-                                    solver='saga',   # saga поддерживает l1, elasticnet, l2
-                                    penalty='elasticnet',  # используем elasticnet
-                                    l1_ratio=0,      # 0 → L2, 1 → L1
-                                    C=1.0
-    )   
-    w_lda, b_lda, Cref, inv_sqrt = train_clssifier(epochs_1_csp, epochs_2_csp, 
-                    freq=[8, 9, 10, 11, 12, 13, 14, 15], 
-                    features=features, classifier=classifier)
+    # features = "riemannian"
+    # classifier = LogisticRegression(max_iter=1000, 
+    #                                 solver='saga',   # saga поддерживает l1, elasticnet, l2
+    #                                 penalty='elasticnet',  # используем elasticnet
+    #                                 l1_ratio=0,      # 0 → L2, 1 → L1
+    #                                 C=1.0
+    # )   
+    # w_lda, b_lda, Cref, inv_sqrt = train_clssifier(epochs_1_csp, epochs_2_csp, 
+    #                 freq=[8, 9, 10, 11, 12, 13, 14, 15], 
+    #                 features=features, classifier=classifier)
     
     features = "csp"
     classifier = LDA()
@@ -277,23 +278,25 @@ if __name__ == "__main__":
                     freq=[8, 9, 10, 11, 12, 13, 14, 15], 
                     features=features, classifier=classifier)
 
-    classifier = LogisticRegression(max_iter=1000, 
-                                    solver='saga',   # saga поддерживает l1, elasticnet, l2
-                                    penalty='elasticnet',  # используем elasticnet
-                                    l1_ratio=0,      # 0 → L2, 1 → L1
-                                    C=1.0
-    )   
-    w_lda, b_lda, Cref, inv_sqrt = train_clssifier(epochs_1_csp, epochs_2_csp, 
-                    freq=[8, 9, 10, 11, 12, 13, 14, 15], 
-                    features=features, classifier=classifier)
+    # classifier = LogisticRegression(max_iter=1000, 
+    #                                 solver='saga',   # saga поддерживает l1, elasticnet, l2
+    #                                 penalty='elasticnet',  # используем elasticnet
+    #                                 l1_ratio=0,      # 0 → L2, 1 → L1
+    #                                 C=1.0
+    # )   
+    # w_lda, b_lda, Cref, inv_sqrt = train_clssifier(epochs_1_csp, epochs_2_csp, 
+    #                 freq=[8, 9, 10, 11, 12, 13, 14, 15], 
+    #                 features=features, classifier=classifier)
     
+    sos = butter(4, band, btype="bandpass", output='sos', fs=Fs)
+
     #Сохраняем все необходимые параметры в JSON
     output_filename=r"models/test_classifier.json"
     if output_filename:
         # Создаем словарь со всеми параметрами
         classifier_data = {
             'spatialW': projInverse[:, sel_comp].tolist(),  # веса csp фильтра
-            # 'sos': sos.tolist(),  # коэффициенты SOS фильтра [секции × 6]
+            'sos': sos.tolist(),  # коэффициенты SOS фильтра [секции × 6]
             "band": band, 
             'features_type': features,  # тип признаков
             "Cref": Cref, 
