@@ -4,6 +4,7 @@ from scipy.linalg import eigh
 from src.utils.olivehawkins_robustcov import olivehawkins_robustcov
 from sklearn.covariance import MinCovDet
 import scipy.linalg as la
+from scipy.signal import butter, filtfilt
 
 # ===================
 # == CHAT GPT =======
@@ -12,7 +13,14 @@ import scipy.linalg as la
 
 import scipy.linalg as la
 
-def compute_csp(epochs1, epochs2, robust=False):
+def compute_cov(epoch):
+    X = epoch - np.mean(epoch, axis=0, keepdims=True)
+    C = X.T @ X
+    return C / np.trace(C)
+
+
+
+def compute_csp(epochs1, epochs2, robust=False, filter=True):
     """
     epochs1, epochs2 : [n_epochs, samples, channels]
 
@@ -23,27 +31,28 @@ def compute_csp(epochs1, epochs2, robust=False):
     eigvals : eigenvalues
     """
 
-    def epoch_cov(epoch):
-        X = epoch - np.mean(epoch, axis=0, keepdims=True)
-        C = X.T @ X
-        return C / np.trace(C)
-
     def class_cov(epochs):
-        covs = [epoch_cov(ep) for ep in epochs]
+        covs = [compute_cov(ep) for ep in epochs]
         return np.mean(covs, axis=0)
 
     def class_robust_cov(epochs):
         covs = [olivehawkins_robustcov(ep)[0] for ep in epochs]
         return np.mean(covs, axis=0)
-
+    
     calculate_cov = class_cov if not robust else class_robust_cov
     C1 = calculate_cov(epochs1)
     C2 = calculate_cov(epochs2)
 
     C = C1 + C2
+    # regularization
+    reg = 1e-3 * np.trace(C) / C.shape[0]
+    C += reg * np.eye(C.shape[0])
+
 
     # whitening
     eigvals, eigvecs = la.eigh(C)
+    eigvals = np.maximum(eigvals, 1e-10)
+
     P = eigvecs @ np.diag(1.0 / np.sqrt(eigvals)) @ eigvecs.T
 
     S1 = P.T @ C1 @ P
@@ -86,11 +95,12 @@ def calculate_robust_cov(epochs):
         cov [n_channels, n_channels]
     """
     data = np.concatenate(epochs, axis=0)   # [n_samples, n_channels]
-    MCD = MinCovDet(support_fraction=0.5, store_precision=False)
-    cov = MCD.fit(data)
+    # MCD = MinCovDet(support_fraction=0.5, store_precision=False)
+    # cov = MCD.fit(data)
+    cov = olivehawkins_robustcov(data)
     return cov
 
-def calculate_CSP(c1, c2):
+def calculate_CSP(epochs_1, epochs_2):
     """
     c1, c2: covariance matrix
     Return:
@@ -99,7 +109,10 @@ def calculate_CSP(c1, c2):
         evals:          
 
     """
-    R1 = c1 / np.trace(c1)
+    с1 = calculate_robust_cov(epochs_1)
+    с2 = calculate_robust_cov(epochs_2)
+    
+    R1 = с1 / np.trace(c1)
     R2 = c2 / np.trace(c2)
     L, W = la.eig(R1, R1+R2)
     order = np.argsort(L)

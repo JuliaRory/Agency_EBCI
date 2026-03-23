@@ -1,5 +1,7 @@
 from numpy import array, asarray, sum, diff
 
+
+
 def slice_epochs(data, intervals):
     """
     Slice multi-channel data into epochs based on start and end indices.

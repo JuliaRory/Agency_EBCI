@@ -10,6 +10,106 @@ newcmp = get_color_map()
 
 import numpy as np
 
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import welch
+
+
+def plot_log_ratio_psd(epochs_left, epochs_right, sfreq, ch_idx, fmin=1, fmax=40, filename=None, show=False):
+    """
+    log-ratio PSD: log(P_left / P_right)
+    """
+
+    def compute_mean_psd(epochs):
+        psds = []
+        for ep in epochs:
+            freqs, psd = welch(
+                ep[:, ch_idx],
+                fs=sfreq,
+                nperseg=sfreq*2,
+                noverlap=sfreq
+            )
+            psds.append(psd)
+        return freqs, np.mean(psds, axis=0)
+
+    freqs, psd_left = compute_mean_psd(epochs_left)
+    _, psd_right = compute_mean_psd(epochs_right)
+
+    # защита от нулей
+    eps = 1e-12
+    log_ratio = np.log(psd_left + eps) - np.log(psd_right + eps)
+
+    # ограничение диапазона
+    mask = (freqs >= fmin) & (freqs <= fmax)
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(freqs[mask], log_ratio[mask])
+
+    plt.axhline(0, linestyle="--")
+    plt.axvline(8, linestyle="--", alpha=0.5)
+    plt.axvline(12, linestyle="--", alpha=0.5)
+    plt.xticks(np.arange(fmin, fmax, 2))
+
+    plt.xlabel("Frequency (Hz)")
+    plt.ylabel("log(P_left / P_right)")
+    plt.title(f"Log-Ratio PSD (channel {ch_idx})")
+    plt.grid(True)
+    if filename:
+        plt.savefig(filename, dpi=300, bbox_inches="tight")
+    if show:
+        plt.show()
+    
+
+def plot_psd_channel(epochs, sfreq, ch_idx, label=None, fmin=1, fmax=40):
+    """
+    epochs : [n_trials, samples, channels]
+    sfreq  : частота дискретизации
+    ch_idx : индекс канала
+    label  : подпись (например 'left' / 'right')
+    """
+
+    psds = []
+
+    for ep in epochs:
+        signal = ep[:, ch_idx]
+
+        freqs, psd = welch(
+            signal,
+            fs=sfreq,
+            nperseg=sfreq * 2,   # окно ~2 сек
+            noverlap=sfreq       # 50% overlap
+        )
+
+        psds.append(psd)
+
+    psds = np.array(psds)
+    mean_psd = psds.mean(axis=0)
+    std_psd = psds.std(axis=0)
+
+    # ограничение частот
+    mask = (freqs >= fmin) & (freqs <= fmax)
+
+    freqs = freqs[mask]
+    mean_psd = mean_psd[mask]
+    std_psd = std_psd[mask]
+
+    # в dB
+    mean_psd_db = 10 * np.log10(mean_psd)
+    std_psd_db = 10 * np.log10(std_psd + 1e-12)
+
+    plt.plot(freqs, mean_psd_db, label=label)
+    plt.fill_between(
+        freqs,
+        mean_psd_db - std_psd_db,
+        mean_psd_db + std_psd_db,
+        alpha=0.2
+    )
+
+    plt.xlabel("Frequency (Hz)")
+    plt.ylabel("Power (dB)")
+    plt.title(f"PSD (channel {ch_idx})")
+    plt.grid(True)
+    
 def plot_spectrograms(
         epochs_1,
         epochs_2,
@@ -18,6 +118,7 @@ def plot_spectrograms(
         fmin=3,
         fmax=30,
         baseline=(0, 100),
+        start_shift=500, 
         title=None):
     
     spec1, t, freqs = compute_epoch_spectrogram(epochs_1, Fs)
@@ -67,7 +168,7 @@ def plot_spectrograms(
         )
 
         ax[r,c].set_title(f"Ch {ch}")
-        ax[r,c].axvline(0, color="black", lw=1)  # линия события
+        ax[r,c].axvline(start_shift-baseline[1], color="black", lw=1)  # линия события
 
     # подписи осей
     for a in ax[:,0]:

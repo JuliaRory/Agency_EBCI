@@ -41,10 +41,10 @@ def plot_spectrogram(f, t, S, channels=None, average=True, fmin=None, fmax=None,
         Axes object.
     """
     if channels is None:
-        channels = arange(S.shape[0])
+        channels = arange(S.shape[1])
     
     # выбираем каналы
-    data_plot = S[channels, :, :]
+    data_plot = S[:, channels, :]
     
     if average:
         data_plot = mean(data_plot, axis=0)

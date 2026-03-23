@@ -6,11 +6,15 @@ import numpy as np
 
 from src.utils.parse_h5df import load_h5df, ttl2binary, reverse_trigger
 from src.utils.events import receive_epochs
-from src.utils.montage_processing import get_topo_positions
+from src.utils.montage_processing import get_topo_positions, get_channel_names, find_ch_idx
 
 # ==== unique for resonance hdf files ====
 
 EEG_CHANNELS = np.arange(64)
+bad_channels = ["FT9", "TP9", "T7", "AF7", "AF8", "FT10", "TP10", "T8"]
+labels = get_channel_names(r"./resources/mks64_standard.ced")
+EEG_CHANNELS = np.array([find_ch_idx(ch, r"./resources/mks64_standard.ced") for ch in labels if not(ch in bad_channels)])
+
 CED_FILE = r"./resources/mks64_standard.ced"
 
 Fs = 1000 # Hz
@@ -18,7 +22,7 @@ s_to_idx = lambda x: int(x * Fs)
 ms_to_idx = lambda x: int(x // 1000 * Fs)
 
 
-def process_file_resonance(filename):
+def process_file_resonance(filename, start_shift=100):
     """
     filename: str 
         absolute path
@@ -33,9 +37,9 @@ def process_file_resonance(filename):
     # idx_motor = receive_epochs(events, event_code=1)
     # idx_rest = receive_epochs(events, event_code=2)
 
-    idxs_rest, idxs_right, idxs_left = parse_events(trigger, window_size=200, start_shift=500, end_shift=0)
+    idxs_rest, idxs_right, idxs_left = parse_events(trigger, window_size=200, start_shift=start_shift, end_shift=0)
     
-    xy = get_topo_positions(CED_FILE)
+    xy = get_topo_positions(CED_FILE)[EEG_CHANNELS]
 
     Fs = 1000
 
