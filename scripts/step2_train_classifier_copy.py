@@ -198,18 +198,20 @@ if __name__ == "__main__":
     else:
         # data_folder = r"R:\projects_FEEDBACK_QUASI\data\02 ES calibration session v2.0"
         # record = "02-OM.hdf"
-        data_folder = r"./data/test/03_23 Artem"
-        record = "06_game.hdf"
+        # data_folder = r"./data/test/03_23 Artem"
+        # record = "06_game.hdf"
+        data_folder = r"R:\projects_FEEDBACK_QUASI\data\tests\04 Daniil 25.03.26"
+        record = "01_OM_calib.hdf" # 4 sec 
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(data_folder, record), start_shift=start_shift)    
 
-    mode = "left-right" # 'right-rest' or 'left-rest'
+    mode = "right-rest" # 'right-rest' or 'left-rest'
     idxs_1, idxs_2 = get_idxs(mode, idxs_rest, idxs_right, idxs_left)
 
     # ==== universal part ==== 
     ion()
     
     choose = False      #<-------------------------- ввести вручную
-    band = [8, 12]      #<-------------------------- ввести вручную
+    band = [10, 14]      #<-------------------------- ввести вручную
 
     log_var_ratio = False
     if log_var_ratio:
@@ -220,8 +222,6 @@ if __name__ == "__main__":
         pause(0.1)
         plot_log_ratio_psd(epochs_1, epochs_2, sfreq=Fs, ch_idx=idx_C4, fmin=1, fmax=30)
         pause(0.1)
-
-    
 
     # СДЕЛАЙ ЭТО ЧЕРЕЗ str = input("text") ПОПОЗЖЕ !!!!!!!!!!!!!!!!!!!!!!!
     if choose:
@@ -278,15 +278,15 @@ if __name__ == "__main__":
                     freq=[8, 9, 10, 11, 12, 13, 14, 15], 
                     features=features, classifier=classifier)
 
-    # classifier = LogisticRegression(max_iter=1000, 
-    #                                 solver='saga',   # saga поддерживает l1, elasticnet, l2
-    #                                 penalty='elasticnet',  # используем elasticnet
-    #                                 l1_ratio=0,      # 0 → L2, 1 → L1
-    #                                 C=1.0
-    # )   
-    # w_lda, b_lda, Cref, inv_sqrt = train_clssifier(epochs_1_csp, epochs_2_csp, 
-    #                 freq=[8, 9, 10, 11, 12, 13, 14, 15], 
-    #                 features=features, classifier=classifier)
+    classifier = LogisticRegression(max_iter=1000, 
+                                    solver='saga',   # saga поддерживает l1, elasticnet, l2
+                                    penalty='elasticnet',  # используем elasticnet
+                                    l1_ratio=0,      # 0 → L2, 1 → L1
+                                    C=1.0
+    )   
+    w_lda, b_lda, Cref, inv_sqrt = train_clssifier(epochs_1_csp, epochs_2_csp, 
+                    freq=[8, 9, 10, 11, 12, 13, 14, 15], 
+                    features=features, classifier=classifier)
     
     sos = butter(4, band, btype="bandpass", output='sos', fs=Fs)
 

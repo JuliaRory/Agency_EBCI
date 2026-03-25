@@ -23,9 +23,9 @@ def calculate_csp_in_bands(eeg, Fs, idxs_1, idxs_2, xy,
     # ==== universal ====
     os.makedirs(folder_output, exist_ok=True)
     eeg, _ = bandpass_filter(eeg, fs=Fs, low=1, high=40)
-    log_var_ratio = False
+    log_var_ratio = True
     n = edges_ms // (1000 // Fs)
-    start_shift += 1000
+    # start_shift += 1000
     epochs_1, epochs_2 = slice_epochs(eeg, idxs_1)[:, n+start_shift:-n, :], slice_epochs(eeg, idxs_2)[:, n+start_shift:-n, :]
     if log_var_ratio:
         
@@ -50,7 +50,7 @@ def calculate_csp_in_bands(eeg, Fs, idxs_1, idxs_2, xy,
                 projInverse, projForward, evals = calculate_CSP(epochs_1, epochs_2)
             else:
                 
-                projInverse, projForward, evals = compute_csp(epochs_1, epochs_2, robust=False)
+                projInverse, projForward, evals = compute_csp(epochs_1, epochs_2, robust=True)
             
             fig = plot_10_csp_components(abs(evals), projForward, xy)
             fig.suptitle(f"CSP: Freq Band {band}", fontsize=16)
@@ -94,19 +94,23 @@ if __name__ == "__main__":
     else:
         data_folder = r"./data/test/03_23 Artem"
         record = "06_game.hdf" # 4 sec 
+
+        data_folder = r"R:\projects_FEEDBACK_QUASI\data\tests\04 Daniil 25.03.26"
+        record = "01_OM_calib.hdf" # 4 sec 
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(data_folder, record), start_shift=start_shift)      
 
-    mode = "left-right" # 'right-rest' or 'left-rest'ff
+    mode = "right-rest" # 'right-rest' or 'left-rest'ff
     if mode == "left-right":
         idxs1, idxs2 = idxs_left, idxs_right
     elif mode == "right-rest":
         idxs1, idxs2 = idxs_right, idxs_rest
     elif mode == "left-rest":
         idxs1, idxs2 = idxs_left, idxs_rest
-
+    # print(len(idxs1),len(idxs2), np.diff(idxs1), np.diff(idxs2))
     # ==== universal part ==== 
     calculate_csp_in_bands(eeg, Fs, idxs1, idxs2, xy, 
                            edges_ms=250, start_shift=start_shift,
-                           bands=[[9, 13], [7,9], [11, 13], [10, 12], [8, 12], [10, 14], [12, 16], [14, 20], [16, 22], [18, 24]], 
+                        #    bands = [ [14, 20], [16, 22], [18, 24]],
+                           bands=[[9, 13], [7,9], [11, 13], [10, 12], [8, 12], [10, 14], [12, 16]], 
                            spectr=False, anatoly=False, 
-                           folder_output=os.path.join(r"./results/csp_components/03_23 Artem/good_channels", record[:-4], mode))
+                           folder_output=os.path.join(r"./results/csp_components/04 Daniil 25.03.26/good_channels", record[:-4], mode))
