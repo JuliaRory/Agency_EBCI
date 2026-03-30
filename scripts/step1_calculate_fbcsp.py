@@ -18,7 +18,7 @@ from src.visualization.spectr import plot_spectr, plot_spectrograms, plot_log_ra
 import numpy as np
 
 def calculate_csp_in_bands(eeg, Fs, idxs_1, idxs_2, xy, 
-                           edges_ms=250, start_shift=500, filter_epoch=True, 
+                           edges_ms=250, start_shift=1500, filter_epoch=True, 
                            bands=[[8, 10], [10, 12], [12, 14], [8, 12], [10, 14]], folder_output=r"./results/csp_components", anatoly=False, spectr=False, show_plot=False):
     # ==== universal ====
     os.makedirs(folder_output, exist_ok=True)
@@ -80,15 +80,15 @@ def calculate_csp_in_bands(eeg, Fs, idxs_1, idxs_2, xy,
 config = {
     "Fs": 1000, 
     "do_baseline": True,
-    "baseline_shift": 500, 
+    "baseline_shift": 1500, 
     "edge": 250,
     "mode": "left-right",
     "epoch_len": 1000,
     "window_step": 1000, 
     "epoch_filter": True, 
-    "bands": [[8, 14]],
-    "olivehawkins": False,
-    "mean_cov": True,
+    "bands": [[9, 13], [11, 13],[8, 12], [10, 14],  [16, 22]],
+    "olivehawkins": True,
+    "mean_cov": False,
     "shrinkage": True,
     "shrinkage_alpha": 0.01,
     "sel_comp": [1, 2, 54, 55]
@@ -96,7 +96,7 @@ config = {
 
 if __name__ == "__main__":
     data = "fb_q"
-    start_shift = 500  # 500 лишних сэмплов в начале для визуализации бейзлайна
+    start_shift = 1500  # 500 лишних сэмплов в начале для визуализации бейзлайна
     # ==== BCI Comp IV ====
     if data == "bci_comp":
         data_folder = r"C:\Users\hodor\Documents\lab-MSU\диссер\Дупло белки\mu_clf\data\BCI Competition IV"
@@ -107,14 +107,14 @@ if __name__ == "__main__":
     
     # ==== Resonance Files ====
     else:
-        data_folder = r"./data/test/03_23 Artem"
-        record = "01_calib.hdf" # 4 sec 
+        data_folder = r"./data/test/03_30 Artem"
+        record = "04_calib_rest.hdf" # 4 sec 
 
         # data_folder = r"R:\projects_FEEDBACK_QUASI\data\tests\04 Daniil 25.03.26"
         # record = "01_OM_calib.hdf" # 4 sec 
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(data_folder, record), start_shift=start_shift)      
 
-    mode = 'right-rest' #"left-right"  or 'left-rest'ff
+    mode = 'left-right' #"left-right"  or 'left-rest'ff
     if mode == "left-right":
         idxs1, idxs2 = idxs_left, idxs_right
     elif mode == "right-rest":
@@ -128,4 +128,4 @@ if __name__ == "__main__":
                         #    bands = [ [14, 20], [16, 22], [18, 24]],
                            bands=[[9, 13], [11, 13],[8, 12], [10, 14],  [16, 22]], 
                            spectr=False, anatoly=False, 
-                           folder_output=os.path.join(r"./results/csp_components/03_23 Artem/30 03 tests/norobust", record[:-4], mode))
+                           folder_output=os.path.join(r"./results/csp_components/03_30 Artem/robust_concat", record[:-4], mode))

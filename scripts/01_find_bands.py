@@ -39,6 +39,8 @@ from src.utils.montage_processing import find_ch_idx
 data_folder = r"./data/test/03_23 Artem"
 records = os.listdir(data_folder) #["04_calib.hdf"] 
 records = ["01_calib.hdf", "04_calib.hdf"] 
+data_folder = r"./data/test/03_30 Artem"
+record = ["01_calib.hdf"] # 4 sec 
 
 fl_montage = r"./resources/mks64_standard.ced"
 idx_C4 = find_ch_idx("C4", fl_montage)
@@ -47,9 +49,9 @@ idx_C3 = find_ch_idx("C3", fl_montage)
 config = {
     "Fs": 1000, 
     "do_baseline": True,
-    "baseline_shift": 500, 
+    "baseline_shift": 1500, 
     "edge": 250,
-    "mode": "right-rest", #"left-right",
+    "mode": "left-right", #"left-right",
     "epoch_len": 1000,
     "epoch_filter": True, 
     # "bands": [[8, 10], [8, 12], [10, 12], [10, 14]],

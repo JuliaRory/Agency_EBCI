@@ -129,8 +129,8 @@ def train_clssifier(epochs_1_csp, epochs_2_csp, freq=[10, 11, 12], features="csp
     ax.plot(np.arange(len(y)), y, label="class")
     proba = predict_proba_online(X, w_lda, b_lda)
     ax.plot(np.arange(len(y)), proba, label="proba")
-    decision =  get_decision(X, w_lda, b_lda)
-    ax.plot(np.arange(len(y)), decision, label="decision")
+    # decision =  get_decision(X, w_lda, b_lda)
+    # ax.plot(np.arange(len(y)), decision, label="decision")
     ax.legend()
     ax.grid()
     ax.axhline(0.5, linewidth=0.5, color='darkgrey')
@@ -168,18 +168,18 @@ def predict_proba_online(x_window, w, b):
 config = {
     "Fs": 1000, 
     "do_baseline": True,
-    "baseline_shift": 500, 
+    "baseline_shift": 1500, 
     "edge": 250,
     "mode": "left-right",
     "epoch_len": 1000,
     "window_step": 1000, 
     "epoch_filter": True, 
-    "bands": [[8, 14]],
-    "olivehawkins": False,
-    "mean_cov": True,
+    "bands": [[9, 13]],
+    "olivehawkins": True,
+    "mean_cov": False,
     "shrinkage": True,
     "shrinkage_alpha": 0.01,
-    "sel_comp": [1, 2, 54, 55]
+    "sel_comp": [0, 1, 52]
 }
 
 if __name__ == "__main__":
@@ -196,8 +196,8 @@ if __name__ == "__main__":
     
     # ==== Resonance Files ====
     else:
-        data_folder = r"./data/test/03_23 Artem"
-        record = "01_calib.hdf" # 4 sec 
+        data_folder = r"./data/test/03_30 Artem"
+        record = "04_calib_rest.hdf" # 4 sec 
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(data_folder, record), start_shift=start_shift)    
 
     mode = "left-right" # 'right-rest' or 'left-rest'
@@ -207,7 +207,7 @@ if __name__ == "__main__":
     ion()
     
     choose = False      #<-------------------------- ввести вручную
-    band = [9, 13]      #<-------------------------- ввести вручную
+    band = config["bands"][0]      #<-------------------------- ввести вручную
 
     log_var_ratio = False
     if log_var_ratio:
@@ -245,7 +245,7 @@ if __name__ == "__main__":
     
     projInverse, projForward, evals = get_csp_filter(epochs_1, epochs_2, anatoly=False)
     
-    sel_comp = [1, 2, 53, 54, 55] #<-------------------------- ввести вручную
+    sel_comp = config["sel_comp"] #<-------------------------- ввести вручную
 
     # epochs_1, epochs_2 = get_epochs(eeg, Fs, idxs_1, idxs_2, edges_ms=250, start_shift=start_shift,  filtered=False, band=band)
 
