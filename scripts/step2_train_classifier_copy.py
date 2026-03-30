@@ -6,7 +6,7 @@ from numpy import concatenate, arange, mean, where, isin, array, ones, zeros, an
 from matplotlib.pyplot import pause, ion, show, subplots
 
 from src.utils.parse_bci_iv_files import process_file_bci_comp
-from src.utils.parse_resonance_files import process_file_resonance
+from src.utils.parse_resonance_files import process_file_resonance, get_idxs
 
 from src.utils.events import slice_epochs #, sliding_epochs
 from src.utils.save_helpers import make_unique_filename
@@ -27,17 +27,7 @@ from sklearn.model_selection import cross_validate
 import numpy as np
 from scipy.signal import butter
 
-def get_idxs(mode, idxs_rest, idxs_right, idxs_left):
-    if mode == "left-right":
-        idxs1 = idxs_left 
-        idxs2 = idxs_right 
-    elif mode == "right-rest":
-        idxs1 = idxs_right
-        idxs2 = idxs_rest
-    elif mode == "left-rest":
-        idxs1 = idxs_left
-        idxs2 = idxs_rest
-    return idxs1, idxs2
+import matplotlib.pyplot as plt
 
 def get_epochs(eeg, Fs, idxs_1, idxs_2, edges_ms=250, start_shift=500, filtered=True, band=[8, 13]):
     eeg, _ = bandpass_filter(eeg, fs=Fs, low=1, high=40)
@@ -60,33 +50,6 @@ def get_epochs_sliding(
     edges_ms=250, start_shift=500, 
     filtered=True, filter_epoch =True, band=[8, 13]
 ):
-    """
-    Разрезает сигнал на эпохи с учетом скользящего окна и фильтрации.
-
-    Параметры:
-    eeg : np.ndarray, shape (n_samples, n_channels)
-        Сырой сигнал
-    Fs : int
-        Частота дискретизации
-    idxs_1, idxs_2 : np.ndarray, shape (n_epochs, 2)
-        Начало и конец каждой эпохи (в сэмплах)
-    window : int
-        Длина окна в сэмплах
-    step : int
-        Шаг скользящего окна в сэмплах
-    edges_ms : int
-        Усечение краев (мс)
-    start_shift : int
-        Усечение начала (мс)
-    filtered : bool
-        Флаг применения фильтрации
-    band : list [low, high]
-        Полоса фильтрации
-
-    Возвращает:
-    epochs_1, epochs_2 : np.ndarray, shape (n_windows, window, n_channels)
-    """
-
     # базовая фильтрация 1-40 Гц
     eeg, _ = bandpass_filter(eeg, fs=Fs, low=1, high=40)
     
@@ -123,7 +86,7 @@ def get_csp_filter(epochs_1, epochs_2, anatoly=False):
     if anatoly:
         projInverse, projForward, evals = calculate_CSP(epochs_1, epochs_2)
     else:
-        projInverse, projForward, evals = compute_csp(epochs_1, epochs_2, robust=False)
+        projInverse, projForward, evals = compute_csp(epochs_1, epochs_2, config)
     return projInverse, projForward, evals
 
 def train_clssifier(epochs_1_csp, epochs_2_csp, freq=[10, 11, 12], features="csp", classifier=LDA()):
@@ -161,14 +124,34 @@ def train_clssifier(epochs_1_csp, epochs_2_csp, freq=[10, 11, 12], features="csp
     # Веса LDA (для признаков, полученных из CSP)
     w_lda = classifier.coef_[0]  # вектор [компоненты] или [признаки]
     b_lda = classifier.intercept_[0]
+
+    fig, ax = subplots(1, 1, figsize=(3, 3))
+    ax.plot(np.arange(len(y)), y, label="class")
+    proba = predict_proba_online(X, w_lda, b_lda)
+    ax.plot(np.arange(len(y)), proba, label="proba")
+    decision =  get_decision(X, w_lda, b_lda)
+    ax.plot(np.arange(len(y)), decision, label="decision")
+    ax.legend()
+    ax.grid()
+    ax.axhline(0.5, linewidth=0.5, color='darkgrey')
+    fig.show()
+    pause(0.1)
     return w_lda, b_lda, Cref, inv_sqrt
-    
+
+def get_decision(x_window, w, b):
+    z =  x_window @ w + b   # линейное предсказание
+    dec = zeros(len(x_window))
+    dec[z > 0] = 1
+    return dec
+
 def predict_proba_online(x_window, w, b):
-    z = np.dot(w, x_window) + b
+    z =  x_window @ w + b   # линейное предсказание
     p = 1 / (1 + np.exp(-z))  # вероятность класса 1
 
     # or y_pred = (p > 0.5).astype(int)
     return p
+
+
 
 # ---------- Предсказание ----------
 # def predict_csp_riemannian(model, X):
@@ -181,6 +164,23 @@ def predict_proba_online(x_window, w, b):
 #     X_feat = tangent_space(covs, Cref)
 
 #     return clf.predict(X_feat)
+
+config = {
+    "Fs": 1000, 
+    "do_baseline": True,
+    "baseline_shift": 500, 
+    "edge": 250,
+    "mode": "left-right",
+    "epoch_len": 1000,
+    "window_step": 1000, 
+    "epoch_filter": True, 
+    "bands": [[8, 14]],
+    "olivehawkins": False,
+    "mean_cov": True,
+    "shrinkage": True,
+    "shrinkage_alpha": 0.01,
+    "sel_comp": [1, 2, 54, 55]
+}
 
 if __name__ == "__main__":
     data = "fb_q"
@@ -196,22 +196,18 @@ if __name__ == "__main__":
     
     # ==== Resonance Files ====
     else:
-        # data_folder = r"R:\projects_FEEDBACK_QUASI\data\02 ES calibration session v2.0"
-        # record = "02-OM.hdf"
-        # data_folder = r"./data/test/03_23 Artem"
-        # record = "06_game.hdf"
-        data_folder = r"R:\projects_FEEDBACK_QUASI\data\tests\04 Daniil 25.03.26"
-        record = "01_OM_calib.hdf" # 4 sec 
+        data_folder = r"./data/test/03_23 Artem"
+        record = "01_calib.hdf" # 4 sec 
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(data_folder, record), start_shift=start_shift)    
 
-    mode = "right-rest" # 'right-rest' or 'left-rest'
+    mode = "left-right" # 'right-rest' or 'left-rest'
     idxs_1, idxs_2 = get_idxs(mode, idxs_rest, idxs_right, idxs_left)
 
     # ==== universal part ==== 
     ion()
     
     choose = False      #<-------------------------- ввести вручную
-    band = [10, 14]      #<-------------------------- ввести вручную
+    band = [9, 13]      #<-------------------------- ввести вручную
 
     log_var_ratio = False
     if log_var_ratio:
@@ -248,13 +244,8 @@ if __name__ == "__main__":
         epochs_1, epochs_2 = get_epochs(eeg, Fs, idxs_1, idxs_2, edges_ms=250, start_shift=start_shift,  filtered=True, band=band)
     
     projInverse, projForward, evals = get_csp_filter(epochs_1, epochs_2, anatoly=False)
-    # fig = plot_10_csp_components(abs(evals), projForward, xy)
-    # fig.suptitle(f"CSP: Freq Band {band}", fontsize=16)
-    # fig.show()
-    # pause(0.1)
-
     
-    sel_comp = [0, 55] #<-------------------------- ввести вручную
+    sel_comp = [1, 2, 53, 54, 55] #<-------------------------- ввести вручную
 
     # epochs_1, epochs_2 = get_epochs(eeg, Fs, idxs_1, idxs_2, edges_ms=250, start_shift=start_shift,  filtered=False, band=band)
 
@@ -278,17 +269,18 @@ if __name__ == "__main__":
                     freq=[8, 9, 10, 11, 12, 13, 14, 15], 
                     features=features, classifier=classifier)
 
-    classifier = LogisticRegression(max_iter=1000, 
-                                    solver='saga',   # saga поддерживает l1, elasticnet, l2
-                                    penalty='elasticnet',  # используем elasticnet
-                                    l1_ratio=0,      # 0 → L2, 1 → L1
-                                    C=1.0
-    )   
-    w_lda, b_lda, Cref, inv_sqrt = train_clssifier(epochs_1_csp, epochs_2_csp, 
-                    freq=[8, 9, 10, 11, 12, 13, 14, 15], 
-                    features=features, classifier=classifier)
+    # classifier = LogisticRegression(max_iter=1000, 
+    #                                 solver='saga',   # saga поддерживает l1, elasticnet, l2
+    #                                 penalty='elasticnet',  # используем elasticnet
+    #                                 l1_ratio=0,      # 0 → L2, 1 → L1
+    #                                 C=1.0
+    # )   
+    # w_lda, b_lda, Cref, inv_sqrt = train_clssifier(epochs_1_csp, epochs_2_csp, 
+    #                 freq=[8, 9, 10, 11, 12, 13, 14, 15], 
+    #                 features=features, classifier=classifier)
     
-    sos = butter(4, band, btype="bandpass", output='sos', fs=Fs)
+    sos_basic = butter(4, [1, 40], btype="bandpass", output='sos', fs=Fs)
+    sos_band = butter(4, band, btype="bandpass", output='sos', fs=Fs)
 
     #Сохраняем все необходимые параметры в JSON
     output_filename=r"models/test_classifier.json"
@@ -296,7 +288,8 @@ if __name__ == "__main__":
         # Создаем словарь со всеми параметрами
         classifier_data = {
             'spatialW': projInverse[:, sel_comp].tolist(),  # веса csp фильтра
-            'sos': sos.tolist(),  # коэффициенты SOS фильтра [секции × 6]
+            'sos_basic': sos_basic.tolist(),  # коэффициенты SOS фильтра [секции × 6]
+            'sos': sos_band.tolist(),  # коэффициенты SOS фильтра [секции × 6]
             "band": band, 
             'features_type': features,  # тип признаков
             "Cref": Cref, 

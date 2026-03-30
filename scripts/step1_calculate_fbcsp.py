@@ -45,12 +45,10 @@ def calculate_csp_in_bands(eeg, Fs, idxs_1, idxs_2, xy,
                 epochs_1 = np.array([bandpass_filter(ep, fs=Fs, low=band[0], high=band[1])[0] for ep in epochs_1])
                 epochs_2 = np.array([bandpass_filter(ep, fs=Fs, low=band[0], high=band[1])[0] for ep in epochs_2])
 
-    
             if anatoly:
                 projInverse, projForward, evals = calculate_CSP(epochs_1, epochs_2)
             else:
-                
-                projInverse, projForward, evals = compute_csp(epochs_1, epochs_2, robust=True)
+                projInverse, projForward, evals = compute_csp(epochs_1, epochs_2, config)
             
             fig = plot_10_csp_components(abs(evals), projForward, xy)
             fig.suptitle(f"CSP: Freq Band {band}", fontsize=16)
@@ -79,6 +77,23 @@ def calculate_csp_in_bands(eeg, Fs, idxs_1, idxs_2, xy,
         #     # Print the specific error message
         #     print(f"An error occurred: {e}") 
 
+config = {
+    "Fs": 1000, 
+    "do_baseline": True,
+    "baseline_shift": 500, 
+    "edge": 250,
+    "mode": "left-right",
+    "epoch_len": 1000,
+    "window_step": 1000, 
+    "epoch_filter": True, 
+    "bands": [[8, 14]],
+    "olivehawkins": False,
+    "mean_cov": True,
+    "shrinkage": True,
+    "shrinkage_alpha": 0.01,
+    "sel_comp": [1, 2, 54, 55]
+}
+
 if __name__ == "__main__":
     data = "fb_q"
     start_shift = 500  # 500 лишних сэмплов в начале для визуализации бейзлайна
@@ -93,13 +108,13 @@ if __name__ == "__main__":
     # ==== Resonance Files ====
     else:
         data_folder = r"./data/test/03_23 Artem"
-        record = "06_game.hdf" # 4 sec 
+        record = "01_calib.hdf" # 4 sec 
 
-        data_folder = r"R:\projects_FEEDBACK_QUASI\data\tests\04 Daniil 25.03.26"
-        record = "01_OM_calib.hdf" # 4 sec 
+        # data_folder = r"R:\projects_FEEDBACK_QUASI\data\tests\04 Daniil 25.03.26"
+        # record = "01_OM_calib.hdf" # 4 sec 
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(data_folder, record), start_shift=start_shift)      
 
-    mode = "right-rest" # 'right-rest' or 'left-rest'ff
+    mode = 'right-rest' #"left-right"  or 'left-rest'ff
     if mode == "left-right":
         idxs1, idxs2 = idxs_left, idxs_right
     elif mode == "right-rest":
@@ -111,6 +126,6 @@ if __name__ == "__main__":
     calculate_csp_in_bands(eeg, Fs, idxs1, idxs2, xy, 
                            edges_ms=250, start_shift=start_shift,
                         #    bands = [ [14, 20], [16, 22], [18, 24]],
-                           bands=[[9, 13], [7,9], [11, 13], [10, 12], [8, 12], [10, 14], [12, 16]], 
+                           bands=[[9, 13], [11, 13],[8, 12], [10, 14],  [16, 22]], 
                            spectr=False, anatoly=False, 
-                           folder_output=os.path.join(r"./results/csp_components/04 Daniil 25.03.26/good_channels", record[:-4], mode))
+                           folder_output=os.path.join(r"./results/csp_components/03_23 Artem/30 03 tests/norobust", record[:-4], mode))

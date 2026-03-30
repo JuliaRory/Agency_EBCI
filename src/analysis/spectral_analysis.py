@@ -51,6 +51,8 @@ def compute_epoch_spectrogram(epochs, Fs):
 
     return spec, t, freqs
 
+
+
 def compute_psd_welch(data, fs, fmin=0.5, fmax=40.0, freq_res=0.5, nperseg=None):
     """
     Compute power spectral density (PSD) using Welch's method.

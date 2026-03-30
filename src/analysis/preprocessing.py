@@ -1,6 +1,28 @@
 from numpy import asarray, eye, newaxis, ones, mean, integer, ndarray, ascontiguousarray
 from scipy.signal import butter, sosfiltfilt
 
+def subtract_baseline(data, baseline_samples=(0, 500)):
+    """
+    Вычитает бейзлайн для каждой эпохи отдельно.
+    
+    Parameters:
+    -----------
+    data : numpy.ndarray
+        Массив размерностью (n_epochs, n_samples, n_channels)
+    baseline_samples : tuple
+        Диапазон сэмплов для бейзлайна (start, end)
+    
+    Returns:
+    --------
+    numpy.ndarray
+        Данные с вычтенным бейзлайном, той же размерности
+    """
+    start, end = baseline_samples
+    # Среднее по временным точкам бейзлайна для каждой эпохи и канала
+    baseline = mean(data[:, start:end, :], axis=1, keepdims=True)
+    return data - baseline
+
+
 def bandpass_filter(signal, fs, low=0.5, highpass=True, high=40.0, lowpass=True, order=4):
     """
     Apply a bandpass Butterworth filter to a signal.

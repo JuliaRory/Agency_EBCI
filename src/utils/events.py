@@ -1,6 +1,42 @@
 from numpy import array, asarray, sum, diff
 
+def get_sliding_epochs(
+    eeg, idxs_1, idxs_2, 
+    window=1000, step=100,  # длина окна и шаг в сэмплах
+    baseline=500, edge=250
+):
+    """
+    Разрезает сигнал на эпохи с учетом скользящего окна.
 
+    Параметры:
+    eeg : np.ndarray, shape (n_samples, n_channels)
+        Сырой сигнал
+    idxs_1, idxs_2 : np.ndarray, shape (n_epochs, 2)
+        Начало и конец каждой эпохи (в сэмплах)
+    window : int
+        Длина окна в сэмплах
+    step : int
+        Шаг скользящего окна в сэмплах
+
+    Возвращает:
+    epochs_1, epochs_2 : np.ndarray, shape (n_epochs, n_samples, n_channels)
+    """
+
+    def slice_epochs_sliding(eeg, idxs):
+        windows_list = []
+        for start_epoch, end_epoch in idxs:
+            # убираем стартовый сдвиг и края
+            s = start_epoch + baseline + edge
+            e = end_epoch - edge
+            for w_start in range(s, e - window + 1, step):
+                w_end = w_start + window
+                windows_list.append(eeg[w_start:w_end, :])
+        return array(windows_list)
+
+    epochs_1 = slice_epochs_sliding(eeg, idxs_1)
+    epochs_2 = slice_epochs_sliding(eeg, idxs_2)
+
+    return epochs_1, epochs_2
 
 def slice_epochs(data, intervals):
     """

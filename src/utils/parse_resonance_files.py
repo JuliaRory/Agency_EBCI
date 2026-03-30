@@ -21,6 +21,17 @@ Fs = 1000 # Hz
 s_to_idx = lambda x: int(x * Fs)
 ms_to_idx = lambda x: int(x // 1000 * Fs)
 
+def get_idxs(mode, idxs_rest, idxs_right, idxs_left):
+    if mode == "left-right":
+        idxs1 = idxs_left 
+        idxs2 = idxs_right 
+    elif mode == "right-rest":
+        idxs1 = idxs_right
+        idxs2 = idxs_rest
+    elif mode == "left-rest":
+        idxs1 = idxs_left
+        idxs2 = idxs_rest
+    return idxs1, idxs2
 
 def process_file_resonance(filename, start_shift=100):
     """

@@ -6,7 +6,7 @@ from scipy.linalg import solve_triangular
 def olivehawkins_robustcov(
     X,
     *,
-    outlier_fraction=02,
+    outlier_fraction=0.2,
     num_trials=None,
     reweighting_method="rmvn",
     num_concentration_steps=10,

@@ -2,7 +2,7 @@ import numpy as np
 from scipy.linalg import eigh
 
 from src.utils.olivehawkins_robustcov import olivehawkins_robustcov
-from sklearn.covariance import MinCovDet
+from sklearn.covariance import LedoitWolf
 import scipy.linalg as la
 from scipy.signal import butter, filtfilt
 
@@ -18,9 +18,16 @@ def compute_cov(epoch):
     C = X.T @ X
     return C / np.trace(C)
 
+def shrink_cov(C, alpha=None):
+    n = C.shape[0]
+    mu = np.trace(C) / n
 
+    if alpha is None:
+        alpha = 0.1  # можно тюнить (0.05–0.3 обычно)
 
-def compute_csp(epochs1, epochs2, robust=False, filter=True):
+    return (1 - alpha) * C + alpha * mu * np.eye(n)
+
+def compute_csp(epochs1, epochs2, config):
     """
     epochs1, epochs2 : [n_epochs, samples, channels]
 
@@ -30,28 +37,59 @@ def compute_csp(epochs1, epochs2, robust=False, filter=True):
     A : spatial patterns (для визуализации)
     eigvals : eigenvalues
     """
+    robust=config["olivehawkins"]
+    mean_cov=config["mean_cov"]
+    shrinkage=config["shrinkage"]
+    alpha=config["shrinkage_alpha"]
+    def class_cov(epochs, mean_cov=True, shrinkage=True, alpha=0.1):
+        if not mean_cov:
+            all_epochs = np.concatenate(epochs, axis=0)
+            cov = compute_cov(all_epochs)
+            if shrinkage:
+                cov = shrink_cov(cov, alpha=alpha)    # регуляризация
+            return cov
+        else:
+            covs = [compute_cov(ep) for ep in epochs]
+            covs = [shrink_cov(cov, alpha=alpha) for cov in covs]
+            return np.mean(covs, axis=0)
 
-    def class_cov(epochs):
-        covs = [compute_cov(ep) for ep in epochs]
-        return np.mean(covs, axis=0)
-
-    def class_robust_cov(epochs):
-        covs = [olivehawkins_robustcov(ep)[0] for ep in epochs]
-        return np.mean(covs, axis=0)
+    def class_robust_cov(epochs, mean_cov=True, shrinkage=True, alpha=0.1):
+        if not mean_cov:
+            all_epochs = np.concatenate(epochs, axis=0)
+            cov = olivehawkins_robustcov(all_epochs)[0]
+            cov /= np.trace(cov)
+            if shrinkage:
+                cov = shrink_cov(cov, alpha=alpha)    # регуляризация
+            return cov
+        else:
+            covs = []
+            for ep in epochs:
+                try:
+                    cov = olivehawkins_robustcov(ep)[0]
+                    cov /= np.trace(cov)
+                    if shrinkage:
+                        cov = shrink_cov(cov, alpha=alpha)    # регуляризация
+                    covs.append(cov)
+                except Exception as e:
+                    print(f"An error occurred: {e}")   
+            # covs = [olivehawkins_robustcov(ep)[0] for ep in epochs]
+            print('cov', len(covs))
+            return np.mean(covs, axis=0)
+    
     
     calculate_cov = class_cov if not robust else class_robust_cov
-    C1 = calculate_cov(epochs1)
-    C2 = calculate_cov(epochs2)
+    C1 = calculate_cov(epochs1, mean_cov=mean_cov, shrinkage=shrinkage, alpha=alpha)
+    C2 = calculate_cov(epochs2, mean_cov=mean_cov, shrinkage=shrinkage, alpha=alpha)
 
     C = C1 + C2
     # regularization
-    reg = 1e-3 * np.trace(C) / C.shape[0]
-    C += reg * np.eye(C.shape[0])
-
+    # reg = 1e-3 * np.trace(C) / C.shape[0]
+    # C += reg * np.eye(C.shape[0])
 
     # whitening
     eigvals, eigvecs = la.eigh(C)
-    eigvals = np.maximum(eigvals, 1e-10)
+    # eigvals = np.maximum(eigvals, 1e-10)
+    eigvals[eigvals < 1e-10] = 1e-10
 
     P = eigvecs @ np.diag(1.0 / np.sqrt(eigvals)) @ eigvecs.T
 
@@ -59,15 +97,15 @@ def compute_csp(epochs1, epochs2, robust=False, filter=True):
 
     eigvals, B = la.eigh(S1)
 
-    W = P @ B
+    W = P @ B       # W [channels, components]
 
     # сортировка
     order = np.argsort(eigvals)
     W = W[:, order]
-    eigvals = eigvals[order]
+    eigvals = eigvals[order]    # min - class 1, max - class 2
 
     # spatial patterns
-    A = la.pinv(W).T
+    A = la.pinv(W).T    # A [channels, components]
 
     return W, A, eigvals
 

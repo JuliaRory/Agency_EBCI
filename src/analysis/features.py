@@ -12,8 +12,7 @@ def csp_features(epochs_csp):
 
     for ep in epochs_csp:
         var = np.var(ep, axis=0)
-        if ep.shape[1] != 2:
-            var /= np.sum(var)
+        var /= np.sum(var)
         feats.append(np.log(var))
 
     return np.array(feats)

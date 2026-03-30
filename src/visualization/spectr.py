@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from numpy import concatenate, mean, log
+from numpy import concatenate, mean, log, array
 
 from src.analysis.spectral_analysis import get_fft_fast, compute_epoch_spectrogram
 from src.visualization.plot_helpers import get_color_map
@@ -14,6 +14,107 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import welch
 
+
+from scipy.signal import welch
+
+
+## ===== process record ======###
+def compute_psd_epochs(epochs, fs, nperseg=None):
+    """
+    epochs: [n_epochs, samples, channels]
+    return:
+        freqs: [n_freqs]
+        psd: [n_freqs, channels]
+    """
+    psds = []
+    
+    for ep in epochs:
+        f, p = welch(ep, fs=fs, nperseg=nperseg, axis=0)
+        psds.append(p)  # [freqs, channels]
+
+    psds = array(psds)  # [n_epochs, freqs, channels]
+    psd_mean = mean(psds, axis=0)
+
+    return f, psd_mean
+
+def plot_psd_diff(epochs_1, epochs_2, fs, ch_names=None, picks=None, title="PSD Difference"):
+    """
+    Показывает разницу спектров между классами и частоты максимального контраста.
+    Разница считается в dB: 10*log10(P1) - 10*log10(P2)
+    """
+    f, psd1 = compute_psd_epochs(epochs_1, fs)
+    _, psd2 = compute_psd_epochs(epochs_2, fs)
+
+    # ограничиваем диапазон 0–30 Гц
+    freq_mask = (f >= 0) & (f <= 30)
+    f = f[freq_mask]
+    psd1 = psd1[freq_mask]
+    psd2 = psd2[freq_mask]
+
+    if picks is None:
+        picks = range(psd1.shape[1])
+
+    fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+
+    for ch in picks:
+        # разница PSD в dB
+        diff_db = 10*np.log10(psd1[:, ch]) - 10*np.log10(psd2[:, ch])
+
+        # ищем частоту максимального контраста
+        max_idx = np.argmax(np.abs(diff_db))
+        max_freq = f[max_idx]
+        max_val = diff_db[max_idx]
+
+        label = f"ch {ch} peak @ {max_freq:.1f} Hz"
+        ax.plot(f, diff_db, label=label)
+        ax.scatter(max_freq, max_val, color='red')  # помечаем максимум
+
+    ax.set_xlim(0, 30)
+    ax.set_xticks(np.arange(0, 31, 2))
+    ax.set_xlabel("Hz")
+    ax.set_ylabel("PSD difference (dB)")
+    # ax.set_title(title)
+    ax.grid(True)
+    ax.legend()
+
+    return fig
+
+def plot_psd(epochs_1, epochs_2, fs, ch_names=None, picks=None, title="PSD"):
+    """
+    picks: список индексов каналов (например C3, C4)
+    """
+    f, psd1 = compute_psd_epochs(epochs_1, fs)
+    _, psd2 = compute_psd_epochs(epochs_2, fs)
+
+    freq_mask = (f >= 0) & (f <= 30)
+    f = f[freq_mask]
+    psd1 = psd1[freq_mask]
+    psd2 = psd2[freq_mask]
+
+    if picks is None:
+        picks = range(psd1.shape[1])
+
+    fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+
+    for ch in picks:
+        label1 = f"class1-{ch_names[ch]}" if ch_names else f"class1-ch{ch}"
+        label2 = f"class2-{ch_names[ch]}" if ch_names else f"class2-ch{ch}"
+
+        ax.plot(f, 10*np.log10(psd1[:, ch]), label=label1)
+        ax.plot(f, 10*np.log10(psd2[:, ch]), linestyle="--", label=label2)
+
+    ax.set_xlim(0, 30)  # 👉 фиксируем ось X
+    ax.set_xticks(np.arange(0, 30, 2))
+
+    ax.set_xlabel("Hz")
+    ax.set_ylabel("Power (dB)")
+    ax.legend()
+    ax.grid()
+
+    return fig
+
+
+## ===== ------ ======###
 
 def plot_log_ratio_psd(epochs_left, epochs_right, sfreq, ch_idx, fmin=1, fmax=40, filename=None, show=False):
     """
