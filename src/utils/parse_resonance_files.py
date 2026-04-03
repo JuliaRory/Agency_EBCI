@@ -12,6 +12,7 @@ from src.utils.montage_processing import get_topo_positions, get_channel_names, 
 
 EEG_CHANNELS = np.arange(64)
 bad_channels = ["FT9", "TP9", "T7", "AF7", "AF8", "FT10", "TP10", "T8"]
+bad_channels = ["FT9", "TP9", "T7", "AF7", "AF8", "FT10", "TP10", "T8"]
 labels = get_channel_names(r"./resources/mks64_standard.ced")
 EEG_CHANNELS = np.array([find_ch_idx(ch, r"./resources/mks64_standard.ced") for ch in labels if not(ch in bad_channels)])
 

@@ -179,7 +179,7 @@ config = {
     "mean_cov": False,
     "shrinkage": True,
     "shrinkage_alpha": 0.01,
-    "sel_comp": [0, 1, 52]
+    "sel_comp": [0, 1, 55]
 }
 
 if __name__ == "__main__":
@@ -196,13 +196,17 @@ if __name__ == "__main__":
     
     # ==== Resonance Files ====
     else:
-        data_folder = r"./data/test/03_30 Artem"
-        record = "04_calib_rest.hdf" # 4 sec 
+        data_folder = r"R:\TOOLS for analysis\bci_classifier\data\pr_Agency_EBCI\raw\test\04_03 Artem"
+        record = "04_calib.hdf" # 4 sec 
+
+        # data_folder = r"R:\projects_FEEDBACK_QUASI\data\tests\05 Daniil 03.04.26"
+        # record = "02_calib_overt.hdf" # 4 sec 
+
         eeg, idxs_rest, idxs_right, idxs_left, xy, Fs = process_file_resonance(os.path.join(data_folder, record), start_shift=start_shift)    
 
     mode = "left-right" # 'right-rest' or 'left-rest'
     idxs_1, idxs_2 = get_idxs(mode, idxs_rest, idxs_right, idxs_left)
-
+    print(idxs_1.shape, idxs_2.shape)
     # ==== universal part ==== 
     ion()
     
@@ -236,7 +240,7 @@ if __name__ == "__main__":
     sliding = True
     window = 1000 # для обучения 
     step = window #window//10
-    filter_epoch = True
+    filter_epoch = False
 
     if sliding:
         epochs_1, epochs_2 = get_epochs_sliding(eeg, Fs, idxs_1, idxs_2, edges_ms=250, start_shift=start_shift,  filtered=True, band=band, window=window, step=step)
